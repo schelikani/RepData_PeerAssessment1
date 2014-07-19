@@ -2,19 +2,148 @@
 
 
 ## Loading and preprocessing the data
+First the working directory is set to be RepData_PeerAssessment1 and code is synched witht e Gitpro repository to have latest copy of the assignement files.
 
+Read the csv data file and assign to **a1** and convert the date variable data type to **date** type. Other 2 variables: **steps** and **intervals** are of **integer** type.
+
+```{r echo = TRUE }
+a1 = read.csv("activity.csv", sep =",", header= T)
+a1$date = as.Date(a1$date)
+```
 
 
 ## What is mean total number of steps taken per day?
+This number is arrived as follows from the data set **a1**. smean and smedian varibles display the  mean daily total steps and daily average median total steps respectively.
 
+plyr package it utilised.
 
+```{r echo=TRUE, fig.width = 5, fig.height =5}
+library(plyr)
+tsteps= ddply(a1, c("date"), summarise, dsteps = sum(steps, na.rm= T))
+smean=mean(tsteps$dsteps)
+smedian =median(tsteps$dsteps)
+barplot(tsteps$dsteps, col ="red", names.arg=tsteps$date, main="Daily Total Steps Vs Date", xlab="Date", ylab="TotalDailySteps")
+abline(smean, 0, col="blue", lwd=5)
+abline(smedian, 0, col="yellow", lwd=5)
+legend("top",c("TotalDailySteps", "StepsMean", "StepsMedian"), fill=c("red","blue","yellow"))
+```
+
+Mean total steps take per day is `r smean` and median steps is `r smedian`
 
 ## What is the average daily activity pattern?
 
 
+```{r, echo= TRUE, fig.width = 5, fig.height =5}
+iTsteps= ddply(a1, c("interval"), summarise, steps = mean(steps, na.rm= T))
+plot(iTsteps$interval, iTsteps$steps, type="l",col ="red", main="Interval Mean Steps Vs 5Minute Interval", xlab="5 MinuteInterval#(Day24HrMin)", ylab="Intervel Mean Steps")
+
+```
+
+
+As revealed in the following charts, the daily activity is peaked at the following inteval.  
+
+```{r echo = FALSE}
+head(iTsteps[order(iTsteps$steps, na.last=T, decreasing=T),],1)
+
+```
+
+Peak average activity interval during day and the top 10 intervals average daily activity is presented as below
+
+```{r echo = TRUE}
+head(iTsteps[order(iTsteps$steps, na.last=T, decreasing=T),],10)
+
+```
+
+This observation makes senses as activity will be high in the morning times for example most of the people are on their work or commuting to work and hence more steps take in these intervals.
 
 ## Imputing missing values
+Review of the data and initial patter idenfies there is missing data with NA as data values for thes.  
+ 
+```{r echo = TRUE}
+nadays = sum(is.na(a1$steps))
+nadates=levels(as.factor(a1[is.na(a1$steps),]$date))
+```
+
+There about `r nadays` days have completely missing data and the dates the data missing are `r nadates`. It is very important to fill those data holes with process so that the results are not biased. 
 
 
+```{r  echo = TRUE}
+# create a new data set a3 from a2 by removing the NA data in a2
+a3 = a1[!(as.character(a1$date) %in% nadates),]
+# create another empty data frame with date, interval and steps as variables
+mdata =data.frame(steps=numeric(), date=character(), interval=integer())
+iTsteps= data.frame(iTsteps, date =NA)
+# create the data sets with Daily Average numbers
+for(i in 1:length(nadates))
+{
+  iTsteps$date = nadates[i]
+  mdata= rbind(mdata,iTsteps)
+}
+# append above data set to a3 to create complete data set which same as the original data set with NA values filled
+mdata$date = as.Date(mdata$date)
+a3 = rbind(a3, mdata)
+
+```
+
+Same analysis is applied to the new data set to analyse the mean and meadian of the daily average activity and Total Daily activity is plotted for visual inspection
+
+```{r echo= TRUE, fig.width = 5, fig.height =5}
+tsteps1= ddply(a3, c("date"), summarise, dsteps = sum(steps, na.rm= T))
+smean1=mean(tsteps1$dsteps)
+smedian1 =median(tsteps1$dsteps)
+barplot(tsteps1$dsteps, col ="red", names.arg=tsteps1$date, main="Daily Mean Total Steps Vs Date with NA data filled", xlab="Date", ylab="TotalDailySteps")
+abline(smean1, 0, col="blue", lwd=5)
+abline(smedian1, 0, col="yellow", lwd=5)
+legend("top",c("TotalDailySteps", "StepsMean", "StepsMedian"), fill=c("red","blue","yellow"))
+```
+
+Mean total steps take per day is `r smean1` and median steps is `r smedian1`
+
+There is some difference.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+There appears to be difference in activity pattern between weekday and weekend.
+
+```{r echo= TRUE}
+a3 = data.frame(a3, day = NA)
+a3$day =as.character(a3$day)
+a3[weekdays(a3$date) %in% c("Monday","Tuesday","Wednesday","Thursday","Friday"),]$day ="weekday"
+a3[weekdays(a3$date) %in% c("Saturday","Sunday"),]$day ="weekend"
+iTstepsnew = ddply(a3, c("day", "interval"), summarise, avgsteps = mean(steps, na.rm= T))
+```
+
+Plotting the Inteval Mean steps data obtained above for visual inspection and clariry
+
+```{r echo= TRUE, fig.width = 5, fig.height =5}
+library(ggplot2)
+qplot(interval, avgsteps, data =iTstepsnew, col= day, xlab="Interval Hr.Min", ylab ="Interval Mean Steps", main="Interval Mean Steps Vs IntervalHr.min")
+```
+
+process the data set iTstepsnew to order on avgsteps 
+
+```{r}
+t1 =subset(iTstepsnew, iTstepsnew$day=="weekday")
+t2 =subset(iTstepsnew, iTstepsnew$day=="weekend")
+```
+
+Observations are
+* Weekday Peak Average Activity interval and Weekday top 10 Average Activity intervals
+
+
+```{r echo =FALSE}
+head(t1[order(t1$avgsteps, decreasing= T),],10)
+```
+
+* Weekend Peak Average Activity interval and Weekday top 10 Average Activity intervals
+
+
+```{r echo=FALSE}
+head(t2[order(t1$avgsteps, decreasing= T),],10)
+```
+
+## Concluding Observations
+* Weekday Mean Steps Peak Interval and Weekend Mean Steps Peak Intervals are almost on the same intevals.
+* Weekday Mean Steps Peak Interval is greater than the Weeked Steps Peak Mean Intervals
+* Weekday Mean Steps Intervals during the early part of the day is most of the time signficantly higher than Weekend Mean Steps Intervals.
+*Weekend Mean Steps Intervals during the middle of the day is most of the time signficantly higher than Weekday Mean Steps Intervals and rest of the day also is comparably higher.
+
