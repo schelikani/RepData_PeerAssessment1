@@ -116,7 +116,7 @@ Plotting the Inteval Mean steps data obtained above for visual inspection and cl
 
 ```{r echo= TRUE, fig.width = 5, fig.height =5}
 library(ggplot2)
-qplot(interval, avgsteps, data =iTstepsnew, col= day, xlab="Interval Hr.Min", ylab ="Interval Mean Steps", main="Interval Mean Steps Vs IntervalHr.min")
+qplot(interval, avgsteps, data =iTstepsnew, col= day, facets =day~.,xlab="Interval Hr.Min", ylab ="Interval Mean Steps", main="Interval Mean Steps Vs IntervalHr.min")
 ```
 
 process the data set iTstepsnew to order on avgsteps 
